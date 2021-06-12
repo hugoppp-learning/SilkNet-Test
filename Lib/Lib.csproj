@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Input" Version="2.5.0" />
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.5.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <None Include="res\**" CopyToOutputDirectory="Always" LinkBase="res\" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <ProjectReference Include="..\ecs\Leopotam.Ecs.csproj" />
+    </ItemGroup>
+
+</Project>

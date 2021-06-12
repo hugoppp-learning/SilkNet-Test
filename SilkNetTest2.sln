@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lib", "Lib\Lib.csproj", "{F50C7E6B-F7A3-4125-B6EA-389A6D5597BE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Game", "Game\Game.csproj", "{B8063564-ED30-46B6-83A9-A0F42E218DB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Leopotam.Ecs", "ecs\Leopotam.Ecs.csproj", "{C1D13C4D-1F75-46DA-8056-7A83392A0AAB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F50C7E6B-F7A3-4125-B6EA-389A6D5597BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F50C7E6B-F7A3-4125-B6EA-389A6D5597BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F50C7E6B-F7A3-4125-B6EA-389A6D5597BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F50C7E6B-F7A3-4125-B6EA-389A6D5597BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8063564-ED30-46B6-83A9-A0F42E218DB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8063564-ED30-46B6-83A9-A0F42E218DB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8063564-ED30-46B6-83A9-A0F42E218DB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8063564-ED30-46B6-83A9-A0F42E218DB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1D13C4D-1F75-46DA-8056-7A83392A0AAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1D13C4D-1F75-46DA-8056-7A83392A0AAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1D13C4D-1F75-46DA-8056-7A83392A0AAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1D13C4D-1F75-46DA-8056-7A83392A0AAB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
