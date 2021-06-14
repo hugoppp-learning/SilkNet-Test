@@ -16,8 +16,7 @@ namespace Lib.Render
 
             Gl.Enable(GLEnum.DebugOutput);
             Gl.DebugMessageCallback(
-                (source, type, id, severity, length, message, userParam) =>
-                    Console.WriteLine($"[GLDebug] [{severity}] {type}/{id}: {Marshal.PtrToStringAnsi(message)}"),
+                WriteDebug,
                 ReadOnlySpan<byte>.Empty);
 
             // Gl.Enable(EnableCap.CullFace);
@@ -30,9 +29,35 @@ namespace Lib.Render
             // Gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         }
 
+        private static void WriteDebug(GLEnum source, GLEnum type, int id, GLEnum severity, int length, nint message, nint userParam)
+        {
+            if (DebugId.IsUseless(id))
+                return;
+
+            string? msg = Marshal.PtrToStringAnsi(message);
+            Console.WriteLine($"[GLDebug] [{severity}] {type}/{id}: {msg ?? "no message"}");
+        }
+
         public static void Clear()
         {
             Gl.Clear((uint) (ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
+        }
+
+        private static class DebugId
+        {
+            public const int BufferDetailedInfo = 131185;
+
+            public static bool IsUseless(int id)
+            {
+                switch (id)
+                {
+                    case 14:
+                    case BufferDetailedInfo:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
         }
     }
 }

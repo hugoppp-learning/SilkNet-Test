@@ -15,6 +15,11 @@ namespace Lib.Components
     {
         public Vector3 Value;
 
+        public Position(Vector3 value)
+        {
+            Value = value;
+        }
+
         public override readonly string ToString() => Value.ToString();
 
         public override readonly bool Equals(object? obj) => Value.Equals(obj);

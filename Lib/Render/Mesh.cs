@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Lib.Render
 {
-    public struct Mesh : IEquatable<Mesh>
+    public readonly struct Mesh : IEquatable<Mesh>
     {
         public readonly SimpleTexturedVertex[] Vertices;
         public readonly float[]? Indices;
@@ -41,6 +42,19 @@ namespace Lib.Render
         public override int GetHashCode()
         {
             return Vertices.GetHashCode();
+        }
+
+        public Mesh Transform(Matrix4x4 transform)
+        {
+            SimpleTexturedVertex[] newVertecies = new SimpleTexturedVertex[Vertices.Length];
+            for (var i = 0; i < Vertices.Length; i++)
+            {
+                newVertecies[i] = new SimpleTexturedVertex(
+                    Vector3.Transform(Vertices[i].Coord, transform),
+                    Vertices[i].UvCoord);
+            }
+
+            return new Mesh(newVertecies, Indices);
         }
     }
 }

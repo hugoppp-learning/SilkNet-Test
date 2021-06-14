@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
 using Leopotam.Ecs;
-using Lib.Components;
 using Lib.Render;
 using Lib.Systems;
 using Silk.NET.Input;
@@ -16,8 +13,14 @@ namespace Lib
         private IInputContext? _input;
         public EcsWorld World { get; } = new();
 
+        public EcsSystems FixedUpdateSystems => _fixedUpdateSystems;
         private EcsSystems _fixedUpdateSystems;
+        public EcsSystems FrameUpdateSystems => _frameUpdateSystems;
         private EcsSystems _frameUpdateSystems;
+
+
+        public event Action<IKeyboard, Key, int>? KeyDown;
+
 
         RenderInfo _renderInfo = new();
         private UpdateInfo _updateInfo = new();
@@ -30,7 +33,7 @@ namespace Lib
             options.API = GraphicsAPI.Default;
 
             options.UpdatesPerSecond = 30.0;
-            options.FramesPerSecond = 300.0;
+            // options.FramesPerSecond = 300.0;
 
             options.ShouldSwapAutomatically = true;
             options.VSync = false;
@@ -42,11 +45,11 @@ namespace Lib
             Window.Render += WindowOnRender;
         }
 
-        internal IInputContext Input => _input ?? throw new InvalidOperationException("Input not yet created");
+        public IInputContext Input => _input ?? throw new InvalidOperationException("Input not yet created");
         internal IWindow Window { get; set; }
 
 
-        public virtual void OnAfterLoad()
+        public virtual void OnBeforeEcsSystemInit()
         {
         }
 
@@ -72,22 +75,21 @@ namespace Lib
             _updateInfo.Delta = delta;
 
             _fixedUpdateSystems.Run();
-
-            EcsEntity[] entities = null;
-            World.GetAllEntities(ref entities);
-            Move(entities[0]);
         }
+
 
         private void OnLoad()
         {
             _input = Window.CreateInput();
             for (int i = 0; i < _input.Keyboards.Count; i++)
-                _input.Keyboards[i].KeyDown += KeyDown;
+                _input.Keyboards[i].KeyDown += (keyboard, key, arg3) => KeyDown?.Invoke(keyboard, key, arg3);
+
 
             GlWrapper.Init(Window);
 
             _fixedUpdateSystems = new EcsSystems(World, "Fixed Update")
-                .Inject(_updateInfo);
+                .Inject(_updateInfo)
+                .Inject(this);
 
             _frameUpdateSystems = new EcsSystems(World, "Frame Update")
                 .Add(new Renderer(), "Renderer")
@@ -96,52 +98,19 @@ namespace Lib
                 .Inject(this);
 
 
+            OnBeforeEcsSystemInit();
             _fixedUpdateSystems.Init();
             _frameUpdateSystems.Init();
-
-            OnAfterLoad();
+            OnAfterEcsSystemInit();
         }
 
-
-        private void Move(EcsEntity e)
+        public virtual void OnAfterEcsSystemInit()
         {
-            float rotationSpeed = 0.1f;
-
-            ref Position pos = ref e.Get<Position>();
-
-            var speed = new Vector3(0.01f);
-            if (Input.Keyboards[0].IsKeyPressed(Key.W))
-                pos.Value += Vector3.UnitY * speed;
-            if (Input.Keyboards[0].IsKeyPressed(Key.S))
-                pos.Value -= Vector3.UnitY * speed;
-            if (Input.Keyboards[0].IsKeyPressed(Key.A))
-                pos.Value -= Vector3.UnitX * speed;
-            if (Input.Keyboards[0].IsKeyPressed(Key.D))
-                pos.Value += Vector3.UnitX * speed;
-            // if (Input.Keyboards[0].IsKeyPressed(Key.E))
-            //     gameObject.Transform2D.Rotate(-rotationSpeed);
-            // if (Input.Keyboards[0].IsKeyPressed(Key.Q))
-            //     gameObject.Transform2D.Rotate(rotationSpeed);
         }
 
-        private void KeyDown(IKeyboard arg1, Key key, int arg3)
+        public void Exit()
         {
-            switch (key)
-            {
-                case Key.Escape:
-                    Window.Close();
-                    break;
-            }
-        }
-
-        private class UpdateInfo : IUpdateInfo
-        {
-            public double Delta { get; set; }
-        }
-
-        private class RenderInfo : IRenderInfo
-        {
-            public double Delta { get; set; }
+            Window.Close();
         }
     }
 }

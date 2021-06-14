@@ -26,7 +26,10 @@ namespace Lib.Systems
                 _sum = 0;
                 _count = 0;
                 if (PrintToConsole)
-                    Console.WriteLine($" [FPS] {_fps.ToString("F1")}");
+                {
+                    Console.WriteLine($" {"[FPS]",12} {_fps.ToString("F1")}");
+                    Console.WriteLine($" {"[DrawCalls]",12} {_renderInfo.DrawCalls}");
+                }
             }
         }
     }

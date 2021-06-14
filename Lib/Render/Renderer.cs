@@ -21,6 +21,7 @@ namespace Lib.Render
 
         //Injected
         private Game _game = null!;
+        private RenderInfo _renderInfo = null!;
 
         public void Run() => Render();
 
@@ -77,6 +78,7 @@ namespace Lib.Render
 
         private void Render()
         {
+            _renderInfo.DrawCalls = 0;
             GlWrapper.Gl.Clear((uint) ClearBufferMask.ColorBufferBit);
 
             Shader.Use();
@@ -92,6 +94,7 @@ namespace Lib.Render
                 tex.Bind();
                 Shader.SetUniform("uModel", Matrix4x4.Identity * Matrix4x4.CreateTranslation(pos));
                 GlWrapper.Gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
+                _renderInfo.DrawCalls++;
             }
         }
     }
