@@ -1,7 +1,9 @@
 ﻿namespace Lib
 {
-    public static class Constants
-    {
-        public const string ResFolder = "res";
-    }
+
+public static class Constants
+{
+    public const string ResFolder = "res";
+}
+
 }
