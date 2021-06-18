@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Immutable;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Lib.Render
@@ -7,17 +9,39 @@ namespace Lib.Render
 
 public readonly struct Mesh : IEquatable<Mesh>
 {
-    public readonly SimpleTexturedVertex[] Vertices;
-    public readonly float[]? Indices;
+    public readonly ImmutableArray<SimpleTexturedVertex> Vertices;
+    public readonly ImmutableArray<float>? Indices;
+    public readonly int Id;
+    private static int _lastId;
 
-    public static SimpleTexturedVertex[]? SpriteMesh;
-
-    public Mesh(SimpleTexturedVertex[] vertices, float[]? indices = null)
+    public Mesh(SimpleTexturedVertex[] vertices, float[]? indices = null) :
+        this(ImmutableArray.Create(vertices),
+            ImmutableArray.Create(indices))
     {
-        (Vertices, Indices) = (vertices, indices);
     }
 
-    public static Mesh Sprite => new(SpriteMesh ??= new[]
+    public Mesh(ImmutableArray<SimpleTexturedVertex> vertices, ImmutableArray<float>? indices = null)
+    {
+        Id = _lastId++;
+        Vertices = vertices;
+        Indices = indices;
+    }
+
+    public Mesh(Mesh mesh, Matrix4x4 transform)
+    {
+        Id = _lastId++;
+        var newVertecies = new SimpleTexturedVertex[mesh.Vertices.Length];
+        for (int i = 0; i < mesh.Vertices.Length; i++)
+            newVertecies[i] = new SimpleTexturedVertex(
+                Vector3.Transform(mesh.Vertices[i].Coord, transform),
+                mesh.Vertices[i].UvCoord);
+
+        //saves Builder class alloc
+        Vertices = Unsafe.As<SimpleTexturedVertex[], ImmutableArray<SimpleTexturedVertex>>(ref newVertecies);
+        Indices = mesh.Indices;
+    }
+
+    public static Mesh Sprite => Meshes.SpriteMesh ??= new Mesh(new[]
     {
         new SimpleTexturedVertex(new(0.0f, 1.0f, 0.0f), new(0.0f, 1.0f)),
         new SimpleTexturedVertex(new(1.0f, 0.0f, 0.0f), new(1.0f, 0.0f)),
@@ -27,36 +51,20 @@ public readonly struct Mesh : IEquatable<Mesh>
         new SimpleTexturedVertex(new(1.0f, 0.0f, 0.0f), new(1.0f, 0.0f))
     });
 
-    public Span<float> AsSpan()
+    public readonly ReadOnlySpan<float> AsSpan()
     {
-        Span<SimpleTexturedVertex> t = Vertices.AsSpan();
+        ReadOnlySpan<SimpleTexturedVertex> t = Vertices.AsSpan();
         return MemoryMarshal.Cast<SimpleTexturedVertex, float>(t);
     }
 
-    public bool Equals(Mesh other)
-    {
-        return Vertices.Equals(other.Vertices);
-    }
+    public bool Equals(Mesh other) => other.Id == Id;
+    public override bool Equals(object? obj) => obj is Mesh other && Equals(other);
+    public override int GetHashCode() => Id;
 
-    public override bool Equals(object? obj)
+    //Can't be in Mesh struct, as it will cause a TypeException
+    private static class Meshes
     {
-        return obj is Mesh other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return Vertices.GetHashCode();
-    }
-
-    public Mesh Transform(Matrix4x4 transform)
-    {
-        SimpleTexturedVertex[] newVertecies = new SimpleTexturedVertex[Vertices.Length];
-        for (int i = 0; i < Vertices.Length; i++)
-            newVertecies[i] = new SimpleTexturedVertex(
-                Vector3.Transform(Vertices[i].Coord, transform),
-                Vertices[i].UvCoord);
-
-        return new Mesh(newVertecies, Indices);
+        public static Mesh? SpriteMesh;
     }
 }
 

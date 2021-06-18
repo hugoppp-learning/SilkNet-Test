@@ -12,14 +12,14 @@ namespace Lib.Render
 public class Renderer : IEcsRunSystem, IEcsInitSystem
 {
     //Injected
+    private EcsWorld World = null!;
     private readonly Game _game = null!;
     private readonly RenderInfo _renderInfo = null!;
+    private EcsFilter<Texture, Position, Mesh> _filter = null!;
 
     private readonly Dictionary<Mesh, VertexArrayObject<float, uint>> VAOs = new();
-    private EcsFilter<Texture, Position, Mesh> _filter;
     private Shader? _shader;
 
-    private EcsWorld World;
 
     // private VertexArrayObject<float, uint> Vao;
 

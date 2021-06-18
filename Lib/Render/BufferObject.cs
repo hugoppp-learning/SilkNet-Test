@@ -10,7 +10,7 @@ public class BufferObject<TDataType> : IDisposable
     private readonly BufferTargetARB _bufferType;
     private readonly uint _handle;
 
-    public unsafe BufferObject(Span<TDataType> data, BufferTargetARB bufferType)
+    public unsafe BufferObject(ReadOnlySpan<TDataType> data, BufferTargetARB bufferType)
     {
         _bufferType = bufferType;
 

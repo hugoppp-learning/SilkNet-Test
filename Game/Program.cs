@@ -41,6 +41,7 @@ internal class Program : Lib.Game
     private void LoadLevel()
     {
         var texture = new Texture("silk.png");
+        Mesh scaledSprite = new Mesh(Mesh.Sprite, Matrix4x4.CreateScale(0.04f));
 
         Vector2D<int> max = new(50, 50);
         Vector2D<int> min = new(-50, -50);
@@ -51,7 +52,7 @@ internal class Program : Lib.Game
             World.NewEntity()
                 .Replace(new Position(new(0.05f * x, 0.05f * y, 0)))
                 .Replace(texture)
-                .Replace(Mesh.Sprite.Transform(Matrix4x4.CreateScale(0.04f)))
+                .Replace(scaledSprite)
                 ;
         }
     }
