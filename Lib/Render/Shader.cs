@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using Silk.NET.OpenGL;
@@ -9,10 +10,13 @@ namespace Lib.Render
 public struct Shader : IDisposable
 {
     private readonly uint _handle;
+    private readonly Dictionary<string, int> _uniformLocationCache;
 
     public Shader(string vertexPath, string fragmentPath)
     {
         _handle = 0;
+        _uniformLocationCache = new Dictionary<string, int>(3);
+
         uint vertex = LoadShader(ShaderType.VertexShader, Path.Combine(Constants.ResFolder, vertexPath));
         uint fragment = LoadShader(ShaderType.FragmentShader, Path.Combine(Constants.ResFolder, fragmentPath));
 
@@ -42,7 +46,7 @@ public struct Shader : IDisposable
 
     public void SetUniform(string name, int value)
     {
-        int location = GlWrapper.Gl.GetUniformLocation(_handle, name);
+        int location = GetUniformLocation(name);
         if (location == -1) throw new ArgumentException($"{name} uniform not found on shader.", nameof(name));
 
         GlWrapper.Gl.Uniform1(location, value);
@@ -50,19 +54,27 @@ public struct Shader : IDisposable
 
     public unsafe void SetUniform(string name, Matrix4x4 value)
     {
-        //A new overload has been created for setting a uniform so we can use the transform in our shader.
-        int location = GlWrapper.Gl.GetUniformLocation(_handle, name);
-        if (location == -1) throw new Exception($"{name} uniform not found on shader.");
-
+        int location = GetUniformLocation(name);
         GlWrapper.Gl.UniformMatrix4(location, 1, false, (float*) &value);
     }
 
+
     public void SetUniform(string name, float value)
     {
-        int location = GlWrapper.Gl.GetUniformLocation(_handle, name);
+        int location = GetUniformLocation(name);
         if (location == -1) throw new ArgumentException($"{name} uniform not found on shader.", nameof(name));
 
         GlWrapper.Gl.Uniform1(location, value);
+    }
+
+    private int GetUniformLocation(string name)
+    {
+        int location = _uniformLocationCache.ContainsKey(name)
+            ? _uniformLocationCache[name]
+            : _uniformLocationCache[name] = GlWrapper.Gl.GetUniformLocation(_handle, name);
+        if (location == -1) throw new Exception($"{name} uniform not found on shader.");
+
+        return location;
     }
 
     private uint LoadShader(ShaderType type, string path)
