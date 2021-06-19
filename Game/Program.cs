@@ -18,6 +18,7 @@ internal class Program : Lib.Game
     {
         World.NewEntity()
             .Replace(new Position())
+            .Replace(new Speed())
             .Replace(new PlayerFlag())
             .Replace(new Texture("silk.png"))
             .Replace(Mesh.Sprite);

@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Leopotam.Ecs;
 using Lib.Components;
@@ -8,28 +9,38 @@ namespace Game
 
 public class PlayerControllerSystem : IEcsRunSystem
 {
-    private EcsFilter<Position, PlayerFlag> _playerFilter = null!;
+    private EcsFilter<Position, Speed, PlayerFlag> _playerFilter = null!;
     private Lib.Game game = null!;
-    Vector3 movementSpeed = new(0.01f);
+
+    public float AccelerationRate { get; set; } = 0.01f;
+    public float Friction { get; set; } = 0.1f;
 
     public void Run()
     {
         for (int i = 0; i < _playerFilter.GetEntitiesCount(); i++)
         {
-            Move(ref _playerFilter.Get1(i).Value);
+            Vector3 acceleration = GetNormalizedMoveDirection() * AccelerationRate;
+            ref var movementSpeed = ref _playerFilter.Get2(i).Value;
+            movementSpeed = (movementSpeed + acceleration) * new Vector3(1 - Friction) ;
+
+            //position
+            _playerFilter.Get1(i).Value += movementSpeed;
         }
     }
 
-    private void Move(ref Vector3 pos)
+    private Vector3 GetNormalizedMoveDirection()
     {
+        Vector3 dir = Vector3.Zero;
+
         if (game.Input.Keyboards[0].IsKeyPressed(Key.W))
-            pos += Vector3.UnitY * movementSpeed;
+            dir.Y += 1;
         if (game.Input.Keyboards[0].IsKeyPressed(Key.S))
-            pos -= Vector3.UnitY * movementSpeed;
+            dir.Y -= 1;
         if (game.Input.Keyboards[0].IsKeyPressed(Key.A))
-            pos -= Vector3.UnitX * movementSpeed;
+            dir.X -= 1;
         if (game.Input.Keyboards[0].IsKeyPressed(Key.D))
-            pos += Vector3.UnitX * movementSpeed;
+            dir.X += 1;
+        return dir.Length() > 0 ? Vector3.Normalize(dir) : dir;
     }
 }
 
