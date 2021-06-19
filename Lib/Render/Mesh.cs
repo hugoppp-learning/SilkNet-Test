@@ -27,7 +27,7 @@ public readonly struct Mesh : IEquatable<Mesh>
         Indices = indices;
     }
 
-    public Mesh(Mesh mesh, Matrix4x4 transform)
+    public Mesh(in Mesh mesh, in Matrix4x4 transform)
     {
         Id = _lastId++;
         var newVertecies = new SimpleTexturedVertex[mesh.Vertices.Length];
@@ -41,15 +41,6 @@ public readonly struct Mesh : IEquatable<Mesh>
         Indices = mesh.Indices;
     }
 
-    public static Mesh Sprite => Meshes.SpriteMesh ??= new Mesh(new[]
-    {
-        new SimpleTexturedVertex(new(0.0f, 1.0f, 0.0f), new(0.0f, 1.0f)),
-        new SimpleTexturedVertex(new(1.0f, 0.0f, 0.0f), new(1.0f, 0.0f)),
-        new SimpleTexturedVertex(new(0.0f, 0.0f, 0.0f), new(0.0f, 0.0f)),
-        new SimpleTexturedVertex(new(0.0f, 1.0f, 0.0f), new(0.0f, 1.0f)),
-        new SimpleTexturedVertex(new(1.0f, 1.0f, 0.0f), new(1.0f, 1.0f)),
-        new SimpleTexturedVertex(new(1.0f, 0.0f, 0.0f), new(1.0f, 0.0f))
-    });
 
     public readonly ReadOnlySpan<float> AsSpan()
     {
@@ -61,10 +52,22 @@ public readonly struct Mesh : IEquatable<Mesh>
     public override bool Equals(object? obj) => obj is Mesh other && Equals(other);
     public override int GetHashCode() => Id;
 
+    public static Mesh Sprite => Meshes.Sprite;
+
     //Can't be in Mesh struct, as it will cause a TypeException
     private static class Meshes
     {
-        public static Mesh? SpriteMesh;
+        private static Mesh? _spriteMesh;
+
+        public static Mesh Sprite => _spriteMesh ??= new Mesh(new[]
+        {
+            new SimpleTexturedVertex(new(0.0f, 1.0f, 0.0f), new(0.0f, 1.0f)),
+            new SimpleTexturedVertex(new(1.0f, 0.0f, 0.0f), new(1.0f, 0.0f)),
+            new SimpleTexturedVertex(new(0.0f, 0.0f, 0.0f), new(0.0f, 0.0f)),
+            new SimpleTexturedVertex(new(0.0f, 1.0f, 0.0f), new(0.0f, 1.0f)),
+            new SimpleTexturedVertex(new(1.0f, 1.0f, 0.0f), new(1.0f, 1.0f)),
+            new SimpleTexturedVertex(new(1.0f, 0.0f, 0.0f), new(1.0f, 0.0f))
+        });
     }
 }
 

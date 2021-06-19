@@ -101,7 +101,7 @@ public class Renderer : IEcsRunSystem, IEcsInitSystem
             GetVAO(mesh).Bind();
 
             tex.Bind();
-            Shader.SetUniform("uModel", Matrix4x4.Identity * Matrix4x4.CreateTranslation(pos));
+            Shader.SetUniform("uModel", Matrix4x4.Identity * Matrix4x4.CreateTranslation(pos.Value));
             GlWrapper.Gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
             _renderInfo.DrawCalls++;
         }
