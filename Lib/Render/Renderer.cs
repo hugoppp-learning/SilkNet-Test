@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 using Leopotam.Ecs;
@@ -38,9 +39,14 @@ public class Renderer : IEcsRunSystem, IEcsInitSystem
         GlWrapper.Gl.ClearColor(Color.SkyBlue);
     }
 
+    Stopwatch sw = new();
+
     public void Run()
     {
+        sw.Restart();
         Render();
+        sw.Stop();
+        _renderInfo.CPUTime = sw.Elapsed.TotalSeconds;
     }
 
     private VertexArrayObject<float, uint> GetVAO(Mesh mesh)

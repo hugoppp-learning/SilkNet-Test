@@ -7,7 +7,7 @@ namespace Lib.Systems
 
 public class FpsProcessor : IEcsRunSystem
 {
-    private readonly IRenderInfo _renderInfo = null!;
+    private readonly RenderInfo _renderInfo = null!;
     private int _count;
     private float _fps;
     private double _sum;

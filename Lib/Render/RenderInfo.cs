@@ -1,27 +1,20 @@
 ﻿namespace Lib.Render
 {
 
-public interface IUpdateInfo
+internal class UpdateInfo
 {
-    public double Delta { get; }
+    public double Delta { get; internal set; }
+    public double CPUTime { get; internal set; }
+    public int GarbageGen0Count { get; internal set; }
+    public int GarbageGen1Count { get; internal set; }
+    public int GarbageGen2Count { get; internal set; }
 }
 
-public interface IRenderInfo
+internal class RenderInfo
 {
-    public double Delta { get; }
-    public int DrawCalls { get; }
-}
-
-
-internal class UpdateInfo : IUpdateInfo
-{
-    public double Delta { get; set; }
-}
-
-internal class RenderInfo : IRenderInfo
-{
-    public double Delta { get; set; }
-    public int DrawCalls { get; set; }
+    public double Delta { get; internal set; }
+    public double CPUTime { get; internal set; }
+    public int DrawCalls { get; internal set; }
 }
 
 }
