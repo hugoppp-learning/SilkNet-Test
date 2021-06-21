@@ -46,7 +46,7 @@ public class Renderer : IEcsRunSystem, IEcsInitSystem
         sw.Restart();
         Render();
         sw.Stop();
-        _renderInfo.CPUTime = sw.Elapsed.TotalSeconds;
+        _renderInfo.CPUTime = sw.Elapsed;
     }
 
     private VertexArrayObject<float, uint> GetVAO(Mesh mesh)

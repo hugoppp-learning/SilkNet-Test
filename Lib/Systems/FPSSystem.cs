@@ -10,26 +10,22 @@ public class FpsProcessor : IEcsRunSystem
     private readonly RenderInfo _renderInfo = null!;
     private int _count;
     private float _fps;
-    private double _sum;
+    private int _sum;
 
-    public float UpdateTime { get; set; } = 1f;
+    public int UpdateTime { get; set; } = 333;
     public bool PrintToConsole { get; set; } = true;
 
     public void Run()
     {
-        _sum += _renderInfo.Delta;
+        _sum += _renderInfo.Delta.Milliseconds;
         _count++;
 
         if (_sum > UpdateTime)
         {
-            _fps = (float) (_count / _sum);
+            _fps = (float) _count / _sum * 1000;
             _sum = 0;
             _count = 0;
-            if (PrintToConsole)
-            {
-                Console.WriteLine($" {"[FPS]",12} {_fps.ToString("F1")}");
-                Console.WriteLine($" {"[DrawCalls]",12} {_renderInfo.DrawCalls}");
-            }
+            _renderInfo.FPS = _fps;
         }
     }
 }

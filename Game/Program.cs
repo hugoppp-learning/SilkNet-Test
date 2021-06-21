@@ -1,5 +1,6 @@
 using System.Numerics;
 using Leopotam.Ecs;
+using Lib;
 using Lib.Components;
 using Lib.Render;
 using Silk.NET.Maths;
@@ -22,6 +23,8 @@ internal class Program : Lib.Game
             .Replace(new PlayerFlag())
             .Replace(new Texture("silk.png"))
             .Replace(Mesh.Sprite);
+
+        RenderSystems.Add(new MyImGui());
 
         GameSystems
             .Add(new PlayerControllerSystem(), "Player Controller")
@@ -54,6 +57,7 @@ internal class Program : Lib.Game
                 .Replace(new Position(new(0.05f * x, 0.05f * y, 0)))
                 .Replace(texture)
                 .Replace(scaledSprite)
+                .Replace(new Name("small block"))
                 ;
         }
     }

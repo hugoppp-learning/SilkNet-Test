@@ -1,4 +1,5 @@
 ﻿using System;
+using ImGuiNET;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Lib.Systems;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
+using Silk.NET.OpenGL.Extensions.ImGui;
 using Timer = System.Timers.Timer;
 
 namespace Lib
@@ -18,6 +20,7 @@ public abstract class Game
     private readonly RenderInfo _renderInfo = new();
     private readonly UpdateInfo _updateInfo = new();
     private IInputContext? _input;
+    private ImGuiController _imGuiController;
 
     public Game()
     {
@@ -29,7 +32,7 @@ public abstract class Game
         options.UpdatesPerSecond = 30.0;
         // options.FramesPerSecond = 300.0;
 
-        options.ShouldSwapAutomatically = true;
+        options.ShouldSwapAutomatically = false;
         options.VSync = false;
 
         Window = Silk.NET.Windowing.Window.Create(options);
@@ -63,20 +66,24 @@ public abstract class Game
 
     private void WindowOnRender(double delta)
     {
-        _renderInfo.Delta = delta;
+        _renderInfo.Delta = TimeSpan.FromSeconds(delta);
+        _imGuiController.Update((float) delta);
         RenderSystems.Run();
+        _imGuiController.Render();
+        Window.SwapBuffers();
     }
 
     private void OnClosing()
     {
         GameSystems.Destroy();
         RenderSystems.Destroy();
+        _imGuiController.Dispose();
     }
 
     private Stopwatch sw = new();
     private void OnUpdate(double delta)
     {
-        _updateInfo.Delta = delta;
+        _updateInfo.Delta = TimeSpan.FromSeconds(delta);
 
         _updateInfo.GarbageGen0Count = GC.CollectionCount(0);
         _updateInfo.GarbageGen1Count = GC.CollectionCount(1);
@@ -85,30 +92,24 @@ public abstract class Game
         sw.Restart();
         GameSystems.Run();
         sw.Stop();
-        _updateInfo.CPUTime = sw.Elapsed.TotalSeconds;
+        _updateInfo.CPUTime = sw.Elapsed;
     }
 
     private static void GbNotification()
     {
         while (true)
         {
-            GCNotificationStatus s = GC.WaitForFullGCComplete();
+            GCNotificationStatus s = GC.WaitForFullGCApproach();
             if (s == GCNotificationStatus.Succeeded)
-                Console.WriteLine("Full GC complete");
+                Console.WriteLine("GC approaching");
             else if (s == GCNotificationStatus.Canceled)
                 Console.WriteLine("GC Notification cancelled.");
             else
                 Console.WriteLine("GC Notification not applicable.");
-        }
-    }
 
-    private static void GbNotificationApproach()
-    {
-        while (true)
-        {
-            GCNotificationStatus s = GC.WaitForFullGCApproach();
+            s = GC.WaitForFullGCComplete();
             if (s == GCNotificationStatus.Succeeded)
-                Console.WriteLine("GC approaching");
+                Console.WriteLine("Full GC complete");
             else if (s == GCNotificationStatus.Canceled)
                 Console.WriteLine("GC Notification cancelled.");
             else
@@ -125,20 +126,22 @@ public abstract class Game
 
         GC.RegisterForFullGCNotification(10, 10);
         Task.Run(() => GbNotification());
-        Task.Run(() => GbNotificationApproach());
 
         GlWrapper.Init(Window);
 
         GameSystems = new EcsSystems(World, "Fixed Update")
             .Inject(_updateInfo)
+            .Inject(_renderInfo)
             .Inject(this);
 
         RenderSystems = new EcsSystems(World, "Frame Update")
             .Add(new Renderer(), "Renderer")
             .Add(new FpsProcessor())
             .Inject(_renderInfo)
+            .Inject(_updateInfo)
             .Inject(this);
 
+        _imGuiController = new ImGuiController(GlWrapper.Gl, Window, _input);
 
         OnBeforeEcsSystemInit();
         GameSystems.Init();
