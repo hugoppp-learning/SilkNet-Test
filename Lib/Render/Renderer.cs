@@ -1,109 +1,100 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.Numerics;
-using Leopotam.Ecs;
-using Lib.Components;
 using Silk.NET.OpenGL;
 
 namespace Lib.Render
 {
 
-public class Renderer : IEcsRunSystem, IEcsInitSystem
+public class Renderer
 {
-    //Injected
-    private EcsWorld World = null!;
-    private readonly Game _game = null!;
-    private readonly RenderInfo _renderInfo = null!;
-    private EcsFilter<Texture, Position, Mesh> _filter = null!;
+    // VertexArrayObject<SimpleTexturedVertex, uint> _vao;
 
-    private readonly Dictionary<Mesh, VertexArrayObject<float, uint>> VAOs = new();
-    private Shader? _shader;
+    private const int BufferSize = 6000;
+
+    //todo list of batches for use with multiple textures
+    private readonly NonIndexedBatch<SimpleTexturedVertex> _dynamicBatch = new(BufferSize);
+    private readonly RenderInfo _renderInfo;
+    private readonly Shader _shader;
 
 
-    // private VertexArrayObject<float, uint> Vao;
-
-    private Shader Shader => _shader ?? throw new InvalidOperationException($"{nameof(Shader)} was not initialized");
-
-    public void Init()
+    public Renderer(RenderInfo renderInfo)
     {
-        _game.Window.Resize += vector2D => GlWrapper.Gl.Viewport(vector2D);
-
-        // Vbo = new BufferObject<float>(Vertices, BufferTargetARB.ArrayBuffer);
-        // Vao = new VertexArrayObject<float, uint>(Vbo);
-
-
+        _renderInfo = renderInfo;
         _shader = new Shader("shader.vert", "shader.frag");
-
-        GlWrapper.Gl.ClearColor(Color.SkyBlue);
     }
 
-    Stopwatch sw = new();
 
-    public void Run()
+    public void Begin()
     {
-        sw.Restart();
-        Render();
-        sw.Stop();
-        _renderInfo.CPUTime = sw.Elapsed;
-    }
-
-    private VertexArrayObject<float, uint> GetVAO(Mesh mesh)
-    {
-        if (VAOs.TryGetValue(mesh, out var val))
-            return val;
-
-        var vbo = new BufferObject<float>(mesh.AsSpan(), BufferTargetARB.ArrayBuffer);
-        var vao = new VertexArrayObject<float, uint>(vbo);
-
-        vao.VertexAttributePointer(0, 3, VertexAttribPointerType.Float, 5, 0);
-        vao.VertexAttributePointer(1, 2, VertexAttribPointerType.Float, 5, 3);
-
-        return VAOs[mesh] = vao;
-    }
-
-    public void OnClose()
-    {
-        Shader.Dispose();
-    }
-
-    public void Render(Mesh mesh, in Matrix4x4 transform, Texture texture)
-    {
-        Render(mesh, transform, texture, Vector4.One);
-    }
-
-    public void Render(Mesh mesh, in Matrix4x4 transform, Vector4 color)
-    {
-        Render(mesh, transform, Texture.Empty, color);
-    }
-
-    public void Render(Mesh mesh, in Matrix4x4 transform, Texture texture, Vector4 color)
-    {
-        GetVAO(mesh).Bind();
-        texture.Bind();
-        Shader.SetUniform("uModel", Matrix4x4.Identity * transform);
-    }
-
-    private void Render()
-    {
+        _shader.Use();
         _renderInfo.DrawCalls = 0;
-        GlWrapper.Gl.Clear((uint) ClearBufferMask.ColorBufferBit);
+        GlWrapper.Clear();
+    }
 
-        Shader.Use();
+    public void End()
+    {
+        _dynamicBatch.Render(_shader, Texture.Empty);
+    }
 
-        foreach (int i in _filter)
+    public void RenderQuadDynamic(in Matrix4x4 transform, Texture texture)
+    {
+        RenderQuadDynamic(transform, texture, Vector4.One);
+    }
+
+    public void RenderQuadDynamic(in Matrix4x4 transform, Vector4 color)
+    {
+        RenderQuadDynamic(transform, Texture.Empty, color);
+    }
+
+    public void RenderQuadDynamic(in Matrix4x4 transform, Texture texture, Vector4 color)
+    {
+        if (_dynamicBatch.VertexBuffer.Count + 6 > _dynamicBatch.VertexBuffer.Capacity)
         {
-            ref Texture tex = ref _filter.Get1(i);
-            ref Position pos = ref _filter.Get2(i);
-            ref Mesh mesh = ref _filter.Get3(i);
-
-            GetVAO(mesh).Bind();
-
-            tex.Bind();
-            Shader.SetUniform("uModel", Matrix4x4.Identity * Matrix4x4.CreateTranslation(pos.Value));
-            GlWrapper.Gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
+            _dynamicBatch.Render(_shader, texture);
             _renderInfo.DrawCalls++;
+        }
+
+        Span<SimpleTexturedVertex> map = _dynamicBatch.VertexBuffer.AddViaMap(6);
+        map[0] = new SimpleTexturedVertex(Vector3.Transform(new(0.0f, 1.0f, 0.0f), transform), new(0.0f, 1.0f));
+        map[1] = new SimpleTexturedVertex(Vector3.Transform(new(1.0f, 0.0f, 0.0f), transform), new(1.0f, 0.0f));
+        map[2] = new SimpleTexturedVertex(Vector3.Transform(new(0.0f, 0.0f, 0.0f), transform), new(0.0f, 0.0f));
+        map[3] = new SimpleTexturedVertex(Vector3.Transform(new(0.0f, 1.0f, 0.0f), transform), new(0.0f, 1.0f));
+        map[4] = new SimpleTexturedVertex(Vector3.Transform(new(1.0f, 1.0f, 0.0f), transform), new(1.0f, 1.0f));
+        map[5] = new SimpleTexturedVertex(Vector3.Transform(new(1.0f, 0.0f, 0.0f), transform), new(1.0f, 0.0f));
+    }
+
+
+    private readonly struct NonIndexedBatch<TVertex> where TVertex : unmanaged, IVertex
+    {
+        public readonly FixedSizeBuffer<TVertex> VertexBuffer;
+
+        public VertexArrayObject<TVertex, uint> VAO { get; }
+
+        public NonIndexedBatch(int batchSize)
+        {
+            VertexBuffer = new(batchSize);
+            var vbo = new BufferObject<TVertex>(batchSize, BufferTargetARB.ArrayBuffer);
+            VAO = new VertexArrayObject<TVertex, uint>(vbo);
+
+            AttribPointerStore.Set(typeof(TVertex), VAO);
+        }
+
+        public void Render(Shader shader, Texture tex)
+        {
+            VAO.Bind();
+            shader.Use();
+            tex.Bind();
+
+            shader.SetUniform("uModel", Matrix4x4.Identity);
+            GlWrapper.Gl.BufferSubData(BufferTargetARB.ArrayBuffer, 0, VertexBuffer.Items);
+            GlWrapper.Gl.DrawArrays(PrimitiveType.Triangles, 0, (uint) VertexBuffer.Count);
+
+            Clear();
+        }
+
+        private void Clear()
+        {
+            VertexBuffer.Clear();
         }
     }
 }

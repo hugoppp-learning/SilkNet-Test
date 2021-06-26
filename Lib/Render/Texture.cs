@@ -27,7 +27,7 @@ public struct Texture : IDisposable
         img.Dispose();
     }
 
-    public static Texture Empty = White();
+    public static readonly Texture Empty = White();
 
     private static Texture White()
     {
@@ -66,9 +66,10 @@ public struct Texture : IDisposable
         GlWrapper.Gl.GenerateMipmap(TextureTarget.Texture2D);
     }
 
-    public void Bind(TextureUnit textureSlot = TextureUnit.Texture0)
+
+    public void Bind(int textureUnit = 0)
     {
-        GlWrapper.Gl.ActiveTexture(textureSlot);
+        GlWrapper.ActivateTextureUnit(textureUnit);
         GlWrapper.Gl.BindTexture(TextureTarget.Texture2D, _handle);
     }
 }

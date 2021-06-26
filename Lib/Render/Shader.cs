@@ -7,8 +7,10 @@ using Silk.NET.OpenGL;
 namespace Lib.Render
 {
 
-public struct Shader : IDisposable
+public class Shader : IDisposable
 {
+    private static uint _currentlyInUse = uint.MaxValue;
+
     private readonly uint _handle;
     private readonly Dictionary<string, int> _uniformLocationCache;
 
@@ -34,6 +36,8 @@ public struct Shader : IDisposable
         GlWrapper.Gl.DeleteShader(fragment);
     }
 
+    public bool InUse => _currentlyInUse == _handle;
+
     public void Dispose()
     {
         GlWrapper.Gl.DeleteProgram(_handle);
@@ -41,6 +45,10 @@ public struct Shader : IDisposable
 
     public void Use()
     {
+        if (InUse)
+            return;
+
+        _currentlyInUse = _handle;
         GlWrapper.Gl.UseProgram(_handle);
     }
 

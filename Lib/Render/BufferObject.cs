@@ -22,6 +22,15 @@ public class BufferObject<TDataType> : IDisposable
         }
     }
 
+    public unsafe BufferObject(int vertexCount, BufferTargetARB bufferType)
+    {
+        _bufferType = bufferType;
+
+        _handle = GlWrapper.Gl.GenBuffer();
+        Bind();
+        GlWrapper.Gl.BufferData(bufferType, (nuint) (vertexCount * sizeof(TDataType)), null, BufferUsageARB.DynamicDraw);
+    }
+
     public void Dispose()
     {
         GlWrapper.Gl.DeleteBuffer(_handle);

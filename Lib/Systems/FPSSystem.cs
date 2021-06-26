@@ -1,5 +1,4 @@
-﻿using System;
-using Leopotam.Ecs;
+﻿using Leopotam.Ecs;
 using Lib.Render;
 
 namespace Lib.Systems

@@ -1,16 +1,13 @@
 ﻿using System;
-using ImGuiNET;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 using Leopotam.Ecs;
 using Lib.Render;
 using Lib.Systems;
 using Silk.NET.Input;
 using Silk.NET.Maths;
-using Silk.NET.Windowing;
 using Silk.NET.OpenGL.Extensions.ImGui;
-using Timer = System.Timers.Timer;
+using Silk.NET.Windowing;
 
 namespace Lib
 {
@@ -19,8 +16,10 @@ public abstract class Game
 {
     private readonly RenderInfo _renderInfo = new();
     private readonly UpdateInfo _updateInfo = new();
-    private IInputContext? _input;
+
+    private readonly Stopwatch sw = new();
     private ImGuiController _imGuiController;
+    private IInputContext? _input;
 
     public Game()
     {
@@ -80,7 +79,6 @@ public abstract class Game
         _imGuiController.Dispose();
     }
 
-    private Stopwatch sw = new();
     private void OnUpdate(double delta)
     {
         _updateInfo.Delta = TimeSpan.FromSeconds(delta);
@@ -135,7 +133,7 @@ public abstract class Game
             .Inject(this);
 
         RenderSystems = new EcsSystems(World, "Frame Update")
-            .Add(new Renderer(), "Renderer")
+            .Add(new RenderSystem2D(), "Renderer")
             .Add(new FpsProcessor())
             .Inject(_renderInfo)
             .Inject(_updateInfo)

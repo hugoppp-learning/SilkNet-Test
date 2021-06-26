@@ -22,7 +22,8 @@ internal class Program : Lib.Game
             .Replace(new Speed())
             .Replace(new PlayerFlag())
             .Replace(new Texture("silk.png"))
-            .Replace(Mesh.Sprite);
+            .Replace(new Name("Player"))
+            .Replace(new QuadRenderer());
 
         RenderSystems.Add(new MyImGui());
 
@@ -45,8 +46,6 @@ internal class Program : Lib.Game
     private void LoadLevel()
     {
         var texture = new Texture("silk.png");
-        Mesh scaledSprite = new Mesh(Mesh.Sprite, Matrix4x4.CreateScale(0.04f));
-
         Vector2D<int> max = new(50, 50);
         Vector2D<int> min = new(-50, -50);
 
@@ -54,10 +53,13 @@ internal class Program : Lib.Game
         for (int y = min.Y; y < max.Y; y++)
         {
             World.NewEntity()
-                .Replace(new Position(new(0.05f * x, 0.05f * y, 0)))
+                .Replace(new Position(new(0.015f * x, 0.015f * y, 0)))
                 .Replace(texture)
-                .Replace(scaledSprite)
+                .Replace(new Scale(0.01f))
+                .Replace(new QuadRenderer())
                 .Replace(new Name("small block"))
+                .Replace(new PlayerFlag())
+                .Replace(new Speed())
                 ;
         }
     }

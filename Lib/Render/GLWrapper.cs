@@ -9,6 +9,9 @@ namespace Lib.Render
 public static class GlWrapper
 {
     private static GL? _gl;
+
+    private static int _textureUnitCount = 1;
+    private static readonly bool[] textureUnits = new bool[_textureUnitCount];
     public static GL Gl => _gl ?? throw new InvalidOperationException("GL not initialized");
 
     public static void Init(IWindow window)
@@ -19,6 +22,9 @@ public static class GlWrapper
         Gl.DebugMessageCallback(
             WriteDebug,
             ReadOnlySpan<byte>.Empty);
+
+
+        _textureUnitCount = Gl.GetInteger((GLEnum) GetPName.MaxTextureImageUnits);
 
         // Gl.Enable(EnableCap.CullFace);
         // Gl.CullFace(CullFaceMode.Back);
@@ -42,6 +48,15 @@ public static class GlWrapper
     public static void Clear()
     {
         Gl.Clear((uint) (ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
+    }
+
+    public static void ActivateTextureUnit(int slot)
+    {
+        if (!textureUnits[0])
+        {
+            Gl.ActiveTexture(TextureUnit.Texture0 + slot);
+            textureUnits[0] = true;
+        }
     }
 
     private static class DebugId

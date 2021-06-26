@@ -12,7 +12,7 @@ namespace Lib
 
 public class MyImGui : IEcsRunSystem
 {
-    private EcsFilter<Position> _filter = null!;
+    private EcsFilter<Position, QuadRenderer> _quadRendererEntities = null!;
     private UpdateInfo _updateInfo = null!;
     private RenderInfo _renderInfo = null!;
 
@@ -31,15 +31,16 @@ public class MyImGui : IEcsRunSystem
         ImGui.End();
 
         ImGui.Begin("Entities");
+        ImGui.Text("QuadRenderer Count: " + _quadRendererEntities.GetEntitiesCount());
 
-        int entitiesCount = _filter.GetEntitiesCount();
+        int entitiesCount = _quadRendererEntities.GetEntitiesCount();
 
         if (entitiesCount > _buffer.Length)
             _buffer = new string[entitiesCount];
 
         for (int i = 0; i < entitiesCount; ++i)
         {
-            EcsEntity ecsEntity = _filter.GetEntity(i);
+            EcsEntity ecsEntity = _quadRendererEntities.GetEntity(i);
             string name = ecsEntity.Has<Name>() ? ecsEntity.Get<Name>().Value : "Unnamed entity";
             _buffer[i] = name;
         }

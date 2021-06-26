@@ -48,9 +48,20 @@ public readonly struct Mesh : IEquatable<Mesh>
         return MemoryMarshal.Cast<SimpleTexturedVertex, float>(t);
     }
 
-    public bool Equals(Mesh other) => other.Id == Id;
-    public override bool Equals(object? obj) => obj is Mesh other && Equals(other);
-    public override int GetHashCode() => Id;
+    public bool Equals(Mesh other)
+    {
+        return other.Id == Id;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Mesh other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return Id;
+    }
 
     public static Mesh Sprite => Meshes.Sprite;
 
