@@ -66,6 +66,7 @@ public abstract class Game
     private void WindowOnRender(double delta)
     {
         _renderInfo.Delta = TimeSpan.FromSeconds(delta);
+        _renderInfo.FrameId++;
         _imGuiController.Update((float) delta);
         RenderSystems.Run();
         _imGuiController.Render();
@@ -83,9 +84,8 @@ public abstract class Game
     {
         _updateInfo.Delta = TimeSpan.FromSeconds(delta);
 
-        _updateInfo.GarbageGen0Count = GC.CollectionCount(0);
-        _updateInfo.GarbageGen1Count = GC.CollectionCount(1);
-        _updateInfo.GarbageGen2Count = GC.CollectionCount(2);
+        for (int i = 0; i < _updateInfo.gc.Length; i++)
+            _updateInfo.gc[i] = GC.CollectionCount(i);
 
         sw.Restart();
         GameSystems.Run();

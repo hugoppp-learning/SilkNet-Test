@@ -24,7 +24,7 @@ public class FpsProcessor : IEcsRunSystem
             _fps = (float) _count / _sum * 1000;
             _sum = 0;
             _count = 0;
-            _renderInfo.FPS = _fps;
+            _renderInfo.Fps = _fps;
         }
     }
 }

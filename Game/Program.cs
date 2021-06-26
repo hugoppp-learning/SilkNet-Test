@@ -25,11 +25,12 @@ internal class Program : Lib.Game
             .Replace(new Name("Player"))
             .Replace(new QuadRenderer());
 
-        RenderSystems.Add(new MyImGui());
+        RenderSystems.Add(new MyImGuiRenderer());
 
         GameSystems
             .Add(new PlayerControllerSystem(), "Player Controller")
             .Add(new GameControllerSystem())
+            .Add(MyImGuiRenderer.MyImGuiData.Instance)
             ;
     }
 
