@@ -69,27 +69,36 @@ public class Renderer
         public readonly FixedSizeBuffer<TVertex> VertexBuffer;
 
         public VertexArrayObject<TVertex, uint> VAO { get; }
+        private BufferObject<TVertex> VBO { get; }
 
         public NonIndexedBatch(int batchSize)
         {
             VertexBuffer = new(batchSize);
-            var vbo = new BufferObject<TVertex>(batchSize, BufferTargetARB.ArrayBuffer);
-            VAO = new VertexArrayObject<TVertex, uint>(vbo);
+            VBO = new BufferObject<TVertex>(batchSize, BufferTargetARB.ArrayBuffer);
+            VAO = new VertexArrayObject<TVertex, uint>(VBO);
 
+            //todo replace attribs with DSA equivalent
+            VAO.Bind();
+            GlWrapper.Gl.BindBuffer(BufferTargetARB.ArrayBuffer, VBO._handle);
             AttribPointerStore.Set(typeof(TVertex), VAO);
         }
 
+
         public void Render(Shader shader, Texture tex)
         {
-            VAO.Bind();
-            shader.Use();
-            tex.Bind();
+            unsafe
+            {
+                VAO.Bind();
 
-            shader.SetUniform("uModel", Matrix4x4.Identity);
-            GlWrapper.Gl.BufferSubData(BufferTargetARB.ArrayBuffer, 0, VertexBuffer.Items);
-            GlWrapper.Gl.DrawArrays(PrimitiveType.Triangles, 0, (uint) VertexBuffer.Count);
+                shader.Use();
+                tex.Bind();
 
-            Clear();
+                shader.SetUniform("uModel", Matrix4x4.Identity);
+                GlWrapper.Gl.NamedBufferSubData(VBO._handle, 0, (nuint) (VertexBuffer.Items.Length * sizeof(TVertex)), VertexBuffer.Items);
+                GlWrapper.Gl.DrawArrays(PrimitiveType.Triangles, 0, (uint) VertexBuffer.Count);
+
+                Clear();
+            }
         }
 
         private void Clear()

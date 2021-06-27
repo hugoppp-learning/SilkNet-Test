@@ -7,28 +7,21 @@ namespace Lib.Render
 public class BufferObject<TDataType> : IDisposable
     where TDataType : unmanaged
 {
-    private readonly BufferTargetARB _bufferType;
-    private readonly uint _handle;
+    internal readonly uint _handle;
 
     public unsafe BufferObject(ReadOnlySpan<TDataType> data, BufferTargetARB bufferType)
     {
-        _bufferType = bufferType;
-
-        _handle = GlWrapper.Gl.GenBuffer();
-        Bind();
+        _handle = GlWrapper.Gl.CreateBuffer();
         fixed (void* d = data)
         {
-            GlWrapper.Gl.BufferData(bufferType, (nuint) (data.Length * sizeof(TDataType)), d, BufferUsageARB.StaticDraw);
+            GlWrapper.Gl.NamedBufferStorage(_handle, (nuint) (data.Length * sizeof(TDataType)), d, BufferStorageMask.DynamicStorageBit);
         }
     }
 
     public unsafe BufferObject(int vertexCount, BufferTargetARB bufferType)
     {
-        _bufferType = bufferType;
-
-        _handle = GlWrapper.Gl.GenBuffer();
-        Bind();
-        GlWrapper.Gl.BufferData(bufferType, (nuint) (vertexCount * sizeof(TDataType)), null, BufferUsageARB.DynamicDraw);
+        _handle = GlWrapper.Gl.CreateBuffer();
+        GlWrapper.Gl.NamedBufferStorage(_handle, (nuint) (vertexCount * sizeof(TDataType)), null, BufferStorageMask.DynamicStorageBit);
     }
 
     public void Dispose()
@@ -36,10 +29,10 @@ public class BufferObject<TDataType> : IDisposable
         GlWrapper.Gl.DeleteBuffer(_handle);
     }
 
-    public void Bind()
-    {
-        GlWrapper.Gl.BindBuffer(_bufferType, _handle);
-    }
+    // public void Bind()
+    // {
+    // GlWrapper.Gl.BindBuffer(_bufferType, _handle);
+    // }
 }
 
 }

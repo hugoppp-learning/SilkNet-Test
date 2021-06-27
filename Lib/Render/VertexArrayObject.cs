@@ -8,18 +8,24 @@ public class VertexArrayObject<TVertexType, TIndexType> : IHasVertexAttribPointe
     where TVertexType : unmanaged
     where TIndexType : unmanaged
 {
-    private readonly uint _handle;
+    internal readonly uint _handle;
 
 
     private uint _currentlyInUse = uint.MaxValue;
 
     public VertexArrayObject(BufferObject<TVertexType> vbo, BufferObject<TIndexType>? ebo = null)
     {
-        _handle = GlWrapper.Gl.GenVertexArray();
-        Bind();
+        unsafe
+        {
+            _handle = GlWrapper.Gl.CreateVertexArray();
+            // Bind();
 
-        vbo.Bind();
-        ebo?.Bind();
+            GlWrapper.Gl.VertexArrayVertexBuffer(_handle, 0, vbo._handle, 0, (uint) sizeof(TVertexType));
+            if (ebo is not null)
+                GlWrapper.Gl.VertexArrayElementBuffer(_handle, ebo._handle);
+            // vbo.Bind();
+            // ebo?.Bind();
+        }
     }
 
     public bool InUse => _currentlyInUse == _handle;
