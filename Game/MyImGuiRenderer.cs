@@ -12,15 +12,13 @@ namespace Lib
 
 public class MyImGuiRenderer : IEcsRunSystem
 {
-    private UpdateInfo _updateInfo = null!;
-    private RenderInfo _renderInfo = null!;
-
-
     private const int buffer_size = 2 * 144;
-    private float[] _frame_times = new float[buffer_size];
-    private float[][] _GC = new float[3][];
+    private readonly float[] _frame_times = new float[buffer_size];
+    private readonly float[][] _GC = new float[3][];
+    private readonly RenderInfo _renderInfo = null!;
+    private readonly UpdateInfo _updateInfo = null!;
 
-    private int[] lastGC = new int[3];
+    private readonly int[] lastGC = new int[3];
 
     public MyImGuiRenderer()
     {
@@ -35,7 +33,7 @@ public class MyImGuiRenderer : IEcsRunSystem
         Array.Copy(_frame_times, 0, _frame_times, 1, _frame_times.Length - 1);
         _frame_times[0] = msDelta;
 
-        for (var i = 0; i < lastGC.Length; i++)
+        for (int i = 0; i < lastGC.Length; i++)
         {
             Array.Copy(_GC[i], 0, _GC[i], 1, _GC[i].Length - 1);
             int newVal = lastGC[i] == _updateInfo.gc[i] ? 0 : 1;
@@ -55,11 +53,9 @@ public class MyImGuiRenderer : IEcsRunSystem
         ImGui.Text("Frametimes:");
         ImGui.PlotLines("", ref _frame_times[0], _frame_times.Length, 0, max.ToString("F1"), 0, 4 * _renderInfo.FpsAsMs,
             new Vector2(250, 50));
-        for (var i = 0; i < _GC.Length; i++)
-        {
+        for (int i = 0; i < _GC.Length; i++)
             ImGui.PlotHistogram("", ref _GC[i][0], _GC[i].Length, 0, $"GC gen{i}: {_updateInfo.gc[i].ToString()}", 0, 1,
                 new Vector2(250, 20));
-        }
 
         ImGui.Text("DrawCalls: " + _renderInfo.DrawCalls);
 
@@ -70,9 +66,6 @@ public class MyImGuiRenderer : IEcsRunSystem
         ImGui.Text("QuadRenderer Count: " + MyImGuiData.EntityCount);
 
 
-        var s = Stopwatch.StartNew();
-        Console.WriteLine(s.ElapsedTicks);
-
         int currentItem = 1;
         ImGui.ListBox("", ref currentItem, MyImGuiData.EntityBuffer, MyImGuiData.EntityCount);
 
@@ -80,12 +73,21 @@ public class MyImGuiRenderer : IEcsRunSystem
     }
 
 
-    public class MyImGuiData : IEcsRunSystem, IEcsWorldDebugListener
+    public class MyImGuiData : IEcsRunSystem
+#if DEBUG
+        , IEcsWorldDebugListener
+#endif
     {
         public static int EntityCount => Math.Min(EntityBuffer.Length, Instance._quadRendererEntities.GetEntitiesCount());
         public static string[] EntityBuffer = new string[0];
 
         public static bool EntityBufferDirty = true;
+
+    #if DEBUG
+    #else
+        private int _dirtCounter;
+        private const int UpdateListEveryXWorldUpdates = 10;
+    #endif
 
         private MyImGuiData()
         {
@@ -93,15 +95,22 @@ public class MyImGuiRenderer : IEcsRunSystem
 
         public static MyImGuiData Instance = new();
 
-        private EcsFilter<Position, QuadRenderer> _quadRendererEntities = null!;
+        private readonly EcsFilter<Position, QuadRenderer> _quadRendererEntities = null!;
 
         public void Run()
         {
             if (EntityBufferDirty)
             {
+                var s = Stopwatch.StartNew();
                 UpdateEntityBuffer();
+                Console.WriteLine(s.Elapsed.TotalMilliseconds);
                 EntityBufferDirty = false;
             }
+        #if DEBUG
+        #else
+            _dirtCounter = (_dirtCounter + 1) % UpdateListEveryXWorldUpdates;
+            EntityBufferDirty = _dirtCounter == 0;
+        #endif
         }
 
         private void UpdateEntityBuffer()
@@ -117,6 +126,7 @@ public class MyImGuiRenderer : IEcsRunSystem
             }
         }
 
+    #if DEBUG
         public void OnEntityCreated(EcsEntity entity) => EntityBufferDirty = true;
 
         public void OnEntityDestroyed(EcsEntity entity) => EntityBufferDirty = true;
@@ -132,12 +142,16 @@ public class MyImGuiRenderer : IEcsRunSystem
         public void OnWorldDestroyed(EcsWorld world)
         {
         }
+    #endif
     }
 }
 
 public struct Name
 {
-    public Name(string value) => Value = value;
+    public Name(string value)
+    {
+        Value = value;
+    }
 
     public string Value;
 }
