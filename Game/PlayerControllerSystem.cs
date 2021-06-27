@@ -1,9 +1,7 @@
-using System;
 using System.Numerics;
 using Leopotam.Ecs;
 using Lib.Components;
 using Silk.NET.Input;
-using Silk.NET.OpenGL.Extensions.ImGui;
 
 namespace Game
 {
@@ -12,12 +10,12 @@ public class PlayerControllerSystem : IEcsRunSystem
 {
     private EcsFilter<Position, Speed, PlayerFlag> _playerFilter = null!;
     private Lib.Game game = null!;
+    public Vector3 MaximumSpeed = new(0.15f);
 
-    public float AccelerationRate { get; set; } = 0.2f;
-    public float DecelerationRate { get; set; } = 0.7f;
-    public Vector3 MaximumSpeed = new(0.1f);
+    public float AccelerationRate { get; set; } = 5.2f;
+    public float DecelerationRate { get; set; } = 1.7f;
 
-    public void Run()
+    public void Run(double delta)
     {
         for (int i = 0; i < _playerFilter.GetEntitiesCount(); i++)
         {
@@ -26,13 +24,12 @@ public class PlayerControllerSystem : IEcsRunSystem
             ref var movementSpeed = ref _playerFilter.Get2(i).Value;
 
             if (direction.Length() == 0)
-                movementSpeed += -movementSpeed * DecelerationRate;
+                movementSpeed += -movementSpeed * (DecelerationRate * (float) delta);
             else
-                movementSpeed += (direction * MaximumSpeed - movementSpeed) * AccelerationRate;
-
+                movementSpeed += (direction * MaximumSpeed - movementSpeed) * (AccelerationRate * (float) delta);
 
             ref Vector3 position = ref _playerFilter.Get1(i).Value;
-            position += movementSpeed;
+            position += movementSpeed * (float) delta;
         }
     }
 

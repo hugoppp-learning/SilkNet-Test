@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
@@ -36,7 +35,7 @@ public class RenderSystem2D : IEcsRunSystem, IEcsInitSystem
     }
 
 
-    public void Run()
+    public void Run(double delta)
     {
         _sw.Restart();
         Render();

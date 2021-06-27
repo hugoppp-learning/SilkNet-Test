@@ -14,7 +14,7 @@ public class FpsProcessor : IEcsRunSystem
     public int UpdateTime { get; set; } = 333;
     public bool PrintToConsole { get; set; } = true;
 
-    public void Run()
+    public void Run(double delta)
     {
         _sum += _renderInfo.Delta.Milliseconds;
         _count++;

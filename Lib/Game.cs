@@ -17,7 +17,12 @@ public abstract class Game
     private readonly RenderInfo _renderInfo = new();
     private readonly UpdateInfo _updateInfo = new();
 
-    private readonly Stopwatch sw = new();
+    private readonly Stopwatch FixedUpdateSw = new();
+    private readonly Stopwatch RenderSw = new();
+    private readonly Stopwatch UpdateSw = new();
+
+    private EcsSystems[] _allEscSystems = new EcsSystems[3];
+
     private ImGuiController _imGuiController;
     private IInputContext? _input;
 
@@ -28,8 +33,8 @@ public abstract class Game
         options.Size = new Vector2D<int>(1280, 720);
         options.API = GraphicsAPI.Default;
 
-        options.UpdatesPerSecond = 30.0;
-        // options.FramesPerSecond = 300.0;
+        options.UpdatesPerSecond = 10.0;
+        options.FramesPerSecond = 300.0;
 
         options.ShouldSwapAutomatically = false;
         options.VSync = false;
@@ -43,9 +48,10 @@ public abstract class Game
 
     public EcsWorld World { get; } = new();
 
-    public EcsSystems GameSystems { get; private set; } = null!;
+    public EcsSystems UpdateSystems { get; private set; } = null!;
 
     public EcsSystems RenderSystems { get; private set; } = null!;
+
 
     public IInputContext Input => _input ?? throw new InvalidOperationException("Input not yet created");
     internal IWindow Window { get; set; }
@@ -67,51 +73,79 @@ public abstract class Game
     {
         _renderInfo.Delta = TimeSpan.FromSeconds(delta);
         _renderInfo.FrameId++;
+
+        UpdateSw.Start();
+        UpdateSystems.Run(delta);
+        UpdateSw.Stop();
+        _updateInfo.UpdateCPUTime = UpdateSw.Elapsed;
+
         _imGuiController.Update((float) delta);
-        RenderSystems.Run();
+
+        RenderSw.Restart();
+        RenderSystems.Run(delta);
+        RenderSw.Stop();
+        _renderInfo.CPUTime = RenderSw.Elapsed;
+
         _imGuiController.Render();
+
         Window.SwapBuffers();
     }
 
     private void OnClosing()
     {
-        GameSystems.Destroy();
-        RenderSystems.Destroy();
+        for (int i = 0; i < _allEscSystems.Length; i++)
+            _allEscSystems[i].Destroy();
+
         _imGuiController.Dispose();
     }
 
     private void OnUpdate(double delta)
     {
-        _updateInfo.Delta = TimeSpan.FromSeconds(delta);
-
         for (int i = 0; i < _updateInfo.gc.Length; i++)
             _updateInfo.gc[i] = GC.CollectionCount(i);
 
-        sw.Restart();
-        GameSystems.Run();
-        sw.Stop();
-        _updateInfo.CPUTime = sw.Elapsed;
+        FixedUpdateSw.Restart();
+        UpdateSystems.RunFixed(delta);
+        FixedUpdateSw.Stop();
+        _updateInfo.FixedUpdateCPUTime = FixedUpdateSw.Elapsed;
+
+        RenderSystems.RunFixed(delta);
     }
 
-    private static void GbNotification()
+    private static void GbNotification(UpdateInfo updateInfo)
     {
         while (true)
         {
             GCNotificationStatus s = GC.WaitForFullGCApproach();
             if (s == GCNotificationStatus.Succeeded)
+            {
                 Console.WriteLine("GC approaching");
+                updateInfo.FullGcApproaching = true;
+            }
             else if (s == GCNotificationStatus.Canceled)
+            {
                 Console.WriteLine("GC Notification cancelled.");
+            }
             else
+            {
                 Console.WriteLine("GC Notification not applicable.");
+            }
 
             s = GC.WaitForFullGCComplete();
             if (s == GCNotificationStatus.Succeeded)
+            {
                 Console.WriteLine("Full GC complete");
+                updateInfo.FullGc++;
+                updateInfo.FullGcApproaching = false;
+            }
             else if (s == GCNotificationStatus.Canceled)
+            {
                 Console.WriteLine("GC Notification cancelled.");
+            }
             else
+            {
                 Console.WriteLine("GC Notification not applicable.");
+            }
         }
     }
 
@@ -123,16 +157,17 @@ public abstract class Game
             _input.Keyboards[i].KeyDown += (keyboard, key, arg3) => KeyDown?.Invoke(keyboard, key, arg3);
 
         GC.RegisterForFullGCNotification(10, 10);
-        Task.Run(() => GbNotification());
+        Task.Run(() => GbNotification(_updateInfo));
 
         GlWrapper.Init(Window);
 
-        GameSystems = new EcsSystems(World, "Fixed Update")
+
+        UpdateSystems = new EcsSystems(World, "Variable Update System")
             .Inject(_updateInfo)
             .Inject(_renderInfo)
             .Inject(this);
 
-        RenderSystems = new EcsSystems(World, "Frame Update")
+        RenderSystems = new EcsSystems(World, "Render Systems")
             .Add(new RenderSystem2D(), "Renderer")
             .Add(new FpsProcessor())
             .Inject(_renderInfo)
@@ -142,8 +177,11 @@ public abstract class Game
         _imGuiController = new ImGuiController(GlWrapper.Gl, Window, _input);
 
         OnBeforeEcsSystemInit();
-        GameSystems.Init();
-        RenderSystems.Init();
+
+        _allEscSystems = new[] {UpdateSystems, RenderSystems};
+        for (int i = 0; i < _allEscSystems.Length; i++)
+            _allEscSystems[i].Init();
+
         OnAfterEcsSystemInit();
     }
 

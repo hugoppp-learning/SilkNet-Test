@@ -1,4 +1,3 @@
-using System.Numerics;
 using Leopotam.Ecs;
 using Lib;
 using Lib.Components;
@@ -25,12 +24,13 @@ internal class Program : Lib.Game
             .Replace(new Name("Player"))
             .Replace(new QuadRenderer());
 
-        RenderSystems.Add(new MyImGuiRenderer());
+        RenderSystems.Add(new MyImGuiRenderer())
+            .Add(MyImGuiRenderer.MyImGuiData.Instance);
+            ;
 
-        GameSystems
+        UpdateSystems
             .Add(new PlayerControllerSystem(), "Player Controller")
             .Add(new GameControllerSystem())
-            .Add(MyImGuiRenderer.MyImGuiData.Instance)
             ;
     }
 
@@ -52,7 +52,6 @@ internal class Program : Lib.Game
 
         for (int x = min.X; x < max.X; x++)
         for (int y = min.Y; y < max.Y; y++)
-        {
             World.NewEntity()
                 .Replace(new Position(new(0.015f * x, 0.015f * y, 0)))
                 .Replace(texture)
@@ -62,7 +61,6 @@ internal class Program : Lib.Game
                 .Replace(new PlayerFlag())
                 .Replace(new Speed())
                 ;
-        }
     }
 }
 

@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using ImGuiNET;
 using Leopotam.Ecs;
@@ -12,53 +11,39 @@ namespace Lib
 
 public class MyImGuiRenderer : IEcsRunSystem
 {
-    private const int buffer_size = 2 * 144;
-    private readonly float[] _frame_times = new float[buffer_size];
-    private readonly float[][] _GC = new float[3][];
+    private const int BufferSize = 2 * 144;
+    private readonly float[] _frameTimes = new float[BufferSize];
     private readonly RenderInfo _renderInfo = null!;
     private readonly UpdateInfo _updateInfo = null!;
 
-    private readonly int[] lastGC = new int[3];
 
-    public MyImGuiRenderer()
+    private bool _enablePlotGcInfo = true;
+
+    private GcData _gc = GcData.Default;
+
+
+    public void Run(double delta)
     {
-        for (int i = 0; i < _GC.Length; i++)
-            _GC[i] = new float[buffer_size];
-    }
-
-    public void Run()
-    {
-        float msDelta = (float) _renderInfo.Delta.TotalMilliseconds;
-
-        Array.Copy(_frame_times, 0, _frame_times, 1, _frame_times.Length - 1);
-        _frame_times[0] = msDelta;
-
-        for (int i = 0; i < lastGC.Length; i++)
-        {
-            Array.Copy(_GC[i], 0, _GC[i], 1, _GC[i].Length - 1);
-            int newVal = lastGC[i] == _updateInfo.gc[i] ? 0 : 1;
-            _GC[i][0] = newVal;
-            lastGC[i] = _updateInfo.gc[i];
-        }
-
-        float max = 0;
-        for (int i = 0; i < _frame_times.Length; i++)
-            max = Math.Max(max, _frame_times[i]);
-
         ImGui.Begin("Update Info");
         ImGui.Text($"Frame id: {_renderInfo.FrameId}");
-        ImGui.Text($"Update CPU ms: {_updateInfo.CPUTime.Milliseconds}");
+        ImGui.Text($"Update CPU ms: {_updateInfo.UpdateCPUTime.Milliseconds}");
+        ImGui.Text($"Fixed Update CPU ms: {_updateInfo.FixedUpdateCPUTime.Milliseconds}");
         ImGui.Text($"Render CPU ms: {_renderInfo.Delta.Milliseconds}");
         ImGui.Text($"FPS: {_renderInfo.Fps.ToString("F2")}");
-        ImGui.Text("Frametimes:");
-        ImGui.PlotLines("", ref _frame_times[0], _frame_times.Length, 0, max.ToString("F1"), 0, 4 * _renderInfo.FpsAsMs,
-            new Vector2(250, 50));
-        for (int i = 0; i < _GC.Length; i++)
-            ImGui.PlotHistogram("", ref _GC[i][0], _GC[i].Length, 0, $"GC gen{i}: {_updateInfo.gc[i].ToString()}", 0, 1,
-                new Vector2(250, 20));
+        PlotFrameTimes();
+
+        ImGui.Checkbox("Garbage Collector Info", ref _enablePlotGcInfo);
+        if (_enablePlotGcInfo)
+        {
+            PlotGcInfo();
+            _gc.Update(_updateInfo);
+        }
+        else
+        {
+            _gc.ResetOnNextUpdate = true;
+        }
 
         ImGui.Text("DrawCalls: " + _renderInfo.DrawCalls);
-
 
         ImGui.End();
 
@@ -72,9 +57,95 @@ public class MyImGuiRenderer : IEcsRunSystem
         ImGui.End();
     }
 
+    private void PlotFrameTimes()
+    {
+        float msDelta = (float) _renderInfo.Delta.TotalMilliseconds;
+        UpdateBuffer(_frameTimes, msDelta);
+        ImGui.Text("Frametimes:");
+        float maxFrameTime = 0;
+        for (int i = 0; i < _frameTimes.Length; i++)
+            maxFrameTime = Math.Max(maxFrameTime, _frameTimes[i]);
+        ImGui.PlotLines("", ref _frameTimes[0], _frameTimes.Length, 0, maxFrameTime.ToString("F1"), 0, 4 * _renderInfo.FpsAsMs,
+            new Vector2(250, 50));
+    }
 
-    public class MyImGuiData : IEcsRunSystem
-#if DEBUG
+    private void PlotGcInfo()
+    {
+        for (int i = 0; i < _gc.GcBuffer.Length; i++)
+            ImGui.PlotHistogram("", ref _gc.GcBuffer[i][0], _gc.GcBuffer[i].Length, 0, $"GC gen{i}: {_updateInfo.gc[i].ToString()}", 0, 1,
+                new Vector2(250, 20));
+        ImGui.PlotHistogram("", ref _gc.FullGcBuffer[0], _gc.FullGcBuffer.Length, 0, $"Full GC: {_updateInfo.FullGc.ToString()}", 0, 1,
+            new Vector2(250, 20));
+    }
+
+    private static void UpdateBuffer(float[] buffer, float newVal)
+    {
+        Array.Copy(buffer, 0, buffer, 1, buffer.Length - 1);
+        buffer[0] = newVal;
+    }
+
+
+    private struct GcData
+    {
+        public float[][] GcBuffer;
+        public int[] LastGcVal;
+
+        public float[] FullGcBuffer;
+        public int FullGcLastVal;
+
+        public bool ResetOnNextUpdate;
+
+        public static GcData Default
+        {
+            get
+            {
+                GcData t = new()
+                {
+                    GcBuffer = new float[3][],
+                    FullGcBuffer = new float[BufferSize],
+                    LastGcVal = new int[3],
+                    FullGcLastVal = 0
+                };
+
+                for (int i = 0; i < t.GcBuffer.Length; i++)
+                    t.GcBuffer[i] = new float[BufferSize];
+
+                return t;
+            }
+        }
+
+        private void Reset()
+        {
+            ResetOnNextUpdate = false;
+            for (int i = 0; i < LastGcVal.Length; i++)
+                Array.Clear(GcBuffer[i], 0, GcBuffer[i].Length);
+            Array.Clear(FullGcBuffer, 0, FullGcBuffer.Length);
+        }
+
+        public void Update(UpdateInfo updateInfo)
+        {
+            if (ResetOnNextUpdate)
+                Reset();
+
+            for (int i = 0; i < LastGcVal.Length; i++)
+            {
+                float newVal = LastGcVal[i] == updateInfo.gc[i] ? 0 : 1;
+                UpdateBuffer(GcBuffer[i], newVal);
+                LastGcVal[i] = updateInfo.gc[i];
+            }
+
+            {
+                float newVal = updateInfo.FullGcApproaching ? 0.1f :
+                    FullGcLastVal == updateInfo.FullGc ? 0 : 1;
+                UpdateBuffer(FullGcBuffer, newVal);
+                FullGcLastVal = updateInfo.FullGc;
+            }
+        }
+    }
+
+
+    public class MyImGuiData : IEcsRunFixedSystem
+    #if DEBUG
         , IEcsWorldDebugListener
 #endif
     {
@@ -97,13 +168,11 @@ public class MyImGuiRenderer : IEcsRunSystem
 
         private readonly EcsFilter<Position, QuadRenderer> _quadRendererEntities = null!;
 
-        public void Run()
+        public void RunFixed(double delta)
         {
             if (EntityBufferDirty)
             {
-                var s = Stopwatch.StartNew();
                 UpdateEntityBuffer();
-                Console.WriteLine(s.Elapsed.TotalMilliseconds);
                 EntityBufferDirty = false;
             }
         #if DEBUG
@@ -127,9 +196,15 @@ public class MyImGuiRenderer : IEcsRunSystem
         }
 
     #if DEBUG
-        public void OnEntityCreated(EcsEntity entity) => EntityBufferDirty = true;
+        public void OnEntityCreated(EcsEntity entity)
+        {
+            EntityBufferDirty = true;
+        }
 
-        public void OnEntityDestroyed(EcsEntity entity) => EntityBufferDirty = true;
+        public void OnEntityDestroyed(EcsEntity entity)
+        {
+            EntityBufferDirty = true;
+        }
 
         public void OnFilterCreated(EcsFilter filter)
         {
