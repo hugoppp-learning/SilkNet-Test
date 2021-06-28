@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Numerics;
+using System.Text;
 using ImGuiNET;
 using Leopotam.Ecs;
 using Lib.Components;
@@ -11,8 +12,8 @@ namespace Lib
 
 public class MyImGuiRenderer : IEcsRunSystem
 {
-    private const int BufferSize = 2 * 144;
-    private readonly float[] _frameTimes = new float[BufferSize];
+    private const int PlotBufferSize = 2 * 144;
+    private readonly float[] _frameTimes = new float[PlotBufferSize];
     private readonly RenderInfo _renderInfo = null!;
     private readonly UpdateInfo _updateInfo = null!;
 
@@ -21,14 +22,26 @@ public class MyImGuiRenderer : IEcsRunSystem
 
     private GcData _gc = GcData.Default;
 
+    private Utf8Buffer frameId = new("Frame id: ", 32);
+    private Utf8Buffer fixedCpuMs = new("Fixed Update CPU ms: ", 32);
+    private Utf8Buffer updateCpuMs = new("Update CPU ms: ", 32);
+    private Utf8Buffer renderCpuMs = new("Render CPU ms: ", 32);
+    private Utf8Buffer quadRendererCount = new("QuadRenderer Count: ", 32);
+
+    private int _entitiesCurrentSelectedIndex;
 
     public void Run(double delta)
     {
         ImGui.Begin("Update Info");
-        ImGui.Text($"Frame id: {_renderInfo.FrameId}");
-        ImGui.Text($"Update CPU ms: {_updateInfo.UpdateCPUTime.Milliseconds}");
-        ImGui.Text($"Fixed Update CPU ms: {_updateInfo.FixedUpdateCPUTime.Milliseconds}");
-        ImGui.Text($"Render CPU ms: {_renderInfo.Delta.Milliseconds}");
+        using (frameId.Put((int) _renderInfo.FrameId))
+            ImGuiExtensions.Text(frameId);
+        using (fixedCpuMs.Put(_updateInfo.FixedUpdateCPUTime.Milliseconds))
+            ImGuiExtensions.Text(fixedCpuMs);
+        using (updateCpuMs.Put(_updateInfo.UpdateCPUTime.Milliseconds))
+            ImGuiExtensions.Text(updateCpuMs);
+        using (renderCpuMs.Put(_renderInfo.Delta.Milliseconds))
+            ImGuiExtensions.Text(renderCpuMs);
+
         ImGui.Text($"FPS: {_renderInfo.Fps.ToString("F2")}");
         PlotFrameTimes();
 
@@ -43,16 +56,12 @@ public class MyImGuiRenderer : IEcsRunSystem
             _gc.ResetOnNextUpdate = true;
         }
 
-        ImGui.Text("DrawCalls: " + _renderInfo.DrawCalls);
-
-        ImGui.End();
 
         ImGui.Begin("Entities");
-        ImGui.Text("QuadRenderer Count: " + MyImGuiData.EntityCount);
+        using (quadRendererCount.Put(MyImGuiData.EntityCount))
+            ImGuiExtensions.Text(quadRendererCount);
 
-
-        int currentItem = 1;
-        ImGui.ListBox("", ref currentItem, MyImGuiData.EntityBuffer, MyImGuiData.EntityCount);
+        ImGui.ListBox("", ref _entitiesCurrentSelectedIndex, MyImGuiData.EntityBuffer, MyImGuiData.EntityCount);
 
         ImGui.End();
     }
@@ -102,13 +111,13 @@ public class MyImGuiRenderer : IEcsRunSystem
                 GcData t = new()
                 {
                     GcBuffer = new float[3][],
-                    FullGcBuffer = new float[BufferSize],
+                    FullGcBuffer = new float[PlotBufferSize],
                     LastGcVal = new int[3],
                     FullGcLastVal = 0
                 };
 
                 for (int i = 0; i < t.GcBuffer.Length; i++)
-                    t.GcBuffer[i] = new float[BufferSize];
+                    t.GcBuffer[i] = new float[PlotBufferSize];
 
                 return t;
             }
@@ -145,7 +154,7 @@ public class MyImGuiRenderer : IEcsRunSystem
 
 
     public class MyImGuiData : IEcsRunFixedSystem
-    #if DEBUG
+#if DEBUG
         , IEcsWorldDebugListener
 #endif
     {
@@ -229,6 +238,137 @@ public struct Name
     }
 
     public string Value;
+}
+
+
+public class Utf8Buffer
+{
+    private byte[] _data;
+    private int len;
+    private int prefixLen;
+    public int BytesLeft => _data.Length - 1 - len;
+
+    public ReadOnlySpan<byte> ToSpan() => _data;
+
+    public void Put(string s)
+    {
+        Encoding.UTF8.GetBytes(s, GetAppendSpan(s.Length));
+        len += s.Length;
+    }
+
+    public readonly struct ClearOnDispose : IDisposable
+    {
+        private readonly Utf8Buffer _buf;
+        public ClearOnDispose(Utf8Buffer buf) => _buf = buf;
+
+        public void Dispose()
+        {
+            _buf.Clear();
+        }
+    }
+
+    public ClearOnDispose Put(int i)
+    {
+        len += itoa(i, GetAppendSpan());
+        return new ClearOnDispose(this);
+    }
+
+
+    public ClearOnDispose Put(ReadOnlySpan<byte> bytes)
+    {
+        bytes.CopyTo(GetAppendSpan(bytes.Length));
+        len += bytes.Length;
+        return new ClearOnDispose(this);
+    }
+
+    public void Clear()
+    {
+        Array.Clear(_data, prefixLen, _data.Length - prefixLen);
+        len = prefixLen;
+    }
+
+    public Utf8Buffer(string prefix, int size)
+    {
+        int utf8ByteCount = Encoding.UTF8.GetByteCount(prefix);
+        if (utf8ByteCount > size - 1) throw new ArgumentException();
+
+        prefixLen = prefix.Length;
+        len = prefixLen;
+
+        _data = new byte[size];
+
+        Encoding.UTF8.GetBytes(prefix, 0, prefix.Length, _data, 0);
+    }
+
+    public static int itoa(int n, Span<byte> result, int radix = 10)
+    {
+        if (0 == n)
+        {
+            result[0] = 48;
+            return 1;
+        }
+
+        int index = 10;
+        Span<char> buffer = stackalloc char[10];
+        string xlat = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+        for (int r = Math.Abs(n), q; r > 0; r = q)
+        {
+            q = Math.DivRem(r, radix, out r);
+            buffer[--index] = xlat[r];
+        }
+
+        if (n < 0)
+        {
+            buffer[--index] = '-';
+        }
+
+        buffer = buffer.Slice(index);
+        if (result.Length <= buffer.Length) throw new ArgumentException("write buffer to small");
+
+        Encoding.UTF8.GetBytes(buffer, result);
+        return index;
+    }
+
+    public override string ToString()
+    {
+        return Encoding.UTF8.GetString(_data.AsSpan(0, len));
+    }
+
+    private Span<byte> GetAppendSpan() => new(_data, len, _data.Length - len);
+
+    private Span<byte> GetAppendSpan(int size)
+    {
+    #if debug
+        if (BytesLeft < size)
+        {
+            throw new ArgumentException($"Requested {size} bytes, but there were only {BytesLeft} left");
+        }
+    #endif
+
+        return new(_data, len, size);
+    }
+}
+
+public static class ImGuiExtensions
+{
+    public static void Text(ReadOnlySpan<byte> utf8)
+    {
+        unsafe
+        {
+            fixed (byte* p = utf8)
+                ImGuiNative.igText(p);
+        }
+    }
+
+    public static void Text(Utf8Buffer buffer)
+    {
+        unsafe
+        {
+            fixed (byte* p = buffer.ToSpan())
+                ImGuiNative.igText(p);
+        }
+    }
 }
 
 }

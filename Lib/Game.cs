@@ -74,7 +74,7 @@ public abstract class Game
         _renderInfo.Delta = TimeSpan.FromSeconds(delta);
         _renderInfo.FrameId++;
 
-        UpdateSw.Start();
+        UpdateSw.Restart();
         UpdateSystems.Run(delta);
         UpdateSw.Stop();
         _updateInfo.UpdateCPUTime = UpdateSw.Elapsed;
