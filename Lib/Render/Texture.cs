@@ -12,9 +12,17 @@ namespace Lib.Render
 public struct Texture : IDisposable
 {
     private uint _handle;
+#if DEBUG
+    public string Name { get; init; }
+
+#endif
 
     public unsafe Texture(string path)
     {
+    #if DEBUG
+        Name = path;
+    #endif
+
         _handle = 0;
         Image<Rgba32> img = (Image<Rgba32>) Image.Load(Path.Combine(Constants.ResFolder, path));
         img.Mutate(x => x.Flip(FlipMode.Vertical));
@@ -34,12 +42,18 @@ public struct Texture : IDisposable
         unsafe
         {
             int whiteColor = int.MaxValue;
-            return new Texture(new Span<byte>(&whiteColor, sizeof(int)), 1, 1);
+            return new Texture(new Span<byte>(&whiteColor, sizeof(int)), 1, 1)
+            #if DEBUG
+                {Name = "White"};
+            #endif
         }
     }
 
     public unsafe Texture(Span<byte> data, uint width, uint height)
     {
+    #if DEBUG
+        Name = "Custom";
+    #endif
         _handle = 0;
         fixed (void* d = &data[0])
         {

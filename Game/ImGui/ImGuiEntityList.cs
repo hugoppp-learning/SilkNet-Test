@@ -8,11 +8,11 @@ namespace Lib
 
 public class ImGuiEntityList : IEcsRunFixedSystem, IEcsRunSystem
 #if DEBUG
-        , IEcsWorldDebugListener
+    , IEcsWorldDebugListener
 #endif
 {
-    public int EntityCount => Math.Min(EntityBuffer.Length, _entities.GetEntitiesCount());
-    public string[] EntityBuffer = new string[0];
+    public int EntityCount => Math.Min(EntityStringBuffer.Length, _entities.GetEntitiesCount());
+    public string[] EntityStringBuffer = new string[0];
 
     public bool EntityBufferDirty = true;
 
@@ -24,6 +24,7 @@ public class ImGuiEntityList : IEcsRunFixedSystem, IEcsRunSystem
 
     private readonly EcsFilter<Position> _entities = null!;
     private Utf8Buffer quadRendererCount = new("QuadRenderer Count: ", 32);
+    private ComponentView _componentView = new();
 
     private int _entitiesCurrentSelectedIndex;
 
@@ -32,7 +33,10 @@ public class ImGuiEntityList : IEcsRunFixedSystem, IEcsRunSystem
         ImGui.Begin("Entities");
         using (quadRendererCount.Put(EntityCount))
             ImGuiExtensions.Text(quadRendererCount);
-        ImGui.ListBox("", ref _entitiesCurrentSelectedIndex, EntityBuffer, EntityCount);
+        ImGui.ListBox("", ref _entitiesCurrentSelectedIndex, EntityStringBuffer, EntityCount);
+
+        ref EcsEntity ecsEntity = ref _entities.GetEntity(_entitiesCurrentSelectedIndex);
+        _componentView.Render(ref ecsEntity);
         ImGui.End();
     }
 
@@ -40,7 +44,7 @@ public class ImGuiEntityList : IEcsRunFixedSystem, IEcsRunSystem
     {
         if (EntityBufferDirty)
         {
-            UpdateEntityBuffer();
+            UpdateEntityStringBuffer();
             EntityBufferDirty = false;
         }
     #if DEBUG
@@ -50,41 +54,41 @@ public class ImGuiEntityList : IEcsRunFixedSystem, IEcsRunSystem
     #endif
     }
 
-    private void UpdateEntityBuffer()
+    private void UpdateEntityStringBuffer()
     {
         int entitiesCount = _entities.GetEntitiesCount();
-        if (entitiesCount > EntityBuffer.Length)
-            EntityBuffer = new string[entitiesCount];
+        if (entitiesCount > EntityStringBuffer.Length)
+            EntityStringBuffer = new string[entitiesCount];
         for (int i = 0; i < entitiesCount; ++i)
         {
             EcsEntity ecsEntity = _entities.GetEntity(i);
             string name = ecsEntity.Has<Name>() ? ecsEntity.Get<Name>().Value : "Unnamed entity";
-            EntityBuffer[i] = name;
+            EntityStringBuffer[i] = name;
         }
     }
 
 #if DEBUG
-        public void OnEntityCreated(EcsEntity entity)
-        {
-            EntityBufferDirty = true;
-        }
+    public void OnEntityCreated(EcsEntity entity)
+    {
+        EntityBufferDirty = true;
+    }
 
-        public void OnEntityDestroyed(EcsEntity entity)
-        {
-            EntityBufferDirty = true;
-        }
+    public void OnEntityDestroyed(EcsEntity entity)
+    {
+        EntityBufferDirty = true;
+    }
 
-        public void OnFilterCreated(EcsFilter filter)
-        {
-        }
+    public void OnFilterCreated(EcsFilter filter)
+    {
+    }
 
-        public void OnComponentListChanged(EcsEntity entity)
-        {
-        }
+    public void OnComponentListChanged(EcsEntity entity)
+    {
+    }
 
-        public void OnWorldDestroyed(EcsWorld world)
-        {
-        }
+    public void OnWorldDestroyed(EcsWorld world)
+    {
+    }
 #endif
 }
 
