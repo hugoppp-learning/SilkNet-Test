@@ -54,16 +54,15 @@ public struct Texture : IDisposable
 
     private unsafe void Load(void* data, uint width, uint height)
     {
-        _handle = GlWrapper.Gl.GenTexture();
-        Bind();
+        GlWrapper.Gl.CreateTextures(TextureTarget.Texture2D, 1, out _handle);
+        GlWrapper.Gl.TextureStorage2D(_handle, 1, SizedInternalFormat.Rgba8, width, height);
+        GlWrapper.Gl.TextureSubImage2D(_handle, 0, 0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, data);
 
-        GlWrapper.Gl.TexImage2D(TextureTarget.Texture2D, 0, (int) InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba,
-            PixelType.UnsignedByte, data);
-        GlWrapper.Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int) GLEnum.ClampToEdge);
-        GlWrapper.Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int) GLEnum.ClampToEdge);
-        GlWrapper.Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int) GLEnum.Linear);
-        GlWrapper.Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int) GLEnum.Linear);
-        GlWrapper.Gl.GenerateMipmap(TextureTarget.Texture2D);
+        GlWrapper.Gl.TextureParameter(_handle, TextureParameterName.TextureWrapS, (int) GLEnum.ClampToEdge);
+        GlWrapper.Gl.TextureParameter(_handle, TextureParameterName.TextureWrapT, (int) GLEnum.ClampToEdge);
+        GlWrapper.Gl.TextureParameter(_handle, TextureParameterName.TextureMinFilter, (int) GLEnum.Linear);
+        GlWrapper.Gl.TextureParameter(_handle, TextureParameterName.TextureMagFilter, (int) GLEnum.Linear);
+        GlWrapper.Gl.GenerateTextureMipmap(_handle);
     }
 
 

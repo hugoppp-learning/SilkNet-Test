@@ -11,7 +11,7 @@ namespace Lib.Render
 /// </summary>
 internal interface IVertex
 {
-    public static void SetLayout(IHasVertexAttribPointer v)
+    public static void SetLayout(INeedsFormat v)
     {
         throw new NotImplementedException();
     }
@@ -27,18 +27,12 @@ public readonly struct SimpleTexturedVertex : IVertex
         (Coord, UvCoord) = (coord, uvCoord);
     }
 
-    public static void SetLayout(IHasVertexAttribPointer v)
+    public static void SetLayout(INeedsFormat vao)
     {
-        uint stride;
-        unsafe
-        {
-            stride = (uint) sizeof(SimpleTexturedVertex);
-        }
-
-        v.VertexAttributePointer(0, 3, VertexAttribPointerType.Float, stride,
-            (int) Marshal.OffsetOf(typeof(SimpleTexturedVertex), nameof(Coord)));
-        v.VertexAttributePointer(1, 2, VertexAttribPointerType.Float, stride,
-            (int) Marshal.OffsetOf(typeof(SimpleTexturedVertex), nameof(UvCoord)));
+        vao.Format(0, 3, VertexAttribType.Float,
+            (uint) Marshal.OffsetOf(typeof(SimpleTexturedVertex), nameof(Coord)));
+        vao.Format(1, 2, VertexAttribType.Float,
+            (uint) Marshal.OffsetOf(typeof(SimpleTexturedVertex), nameof(UvCoord)));
     }
 }
 

@@ -80,7 +80,7 @@ public class Renderer
             //todo replace attribs with DSA equivalent
             VAO.Bind();
             GlWrapper.Gl.BindBuffer(BufferTargetARB.ArrayBuffer, VBO._handle);
-            AttribPointerStore.Set(typeof(TVertex), VAO);
+            VertexFormatStore.Set(typeof(TVertex), VAO);
         }
 
 
