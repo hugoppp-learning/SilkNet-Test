@@ -15,6 +15,7 @@ public class RenderSystem2D : IEcsRunSystem, IEcsInitSystem
     private readonly RenderInfo _renderInfo = null!;
 
     private EcsFilter<Position, QuadRenderer> _filterQuads = null!;
+    private EcsFilter<OrthoCamera> _filterOrthoCam = null!;
 
     //init
     private Renderer _renderer = null!;
@@ -35,18 +36,12 @@ public class RenderSystem2D : IEcsRunSystem, IEcsInitSystem
     }
 
 
-    public void Run(double delta)
-    {
-        _sw.Restart();
-        Render();
-        _sw.Stop();
-        _renderInfo.CPUTime = _sw.Elapsed;
-    }
+    public void Run(double delta) => Render();
 
 
     private void Render()
     {
-        _renderer.Begin();
+        _renderer.Begin(_filterOrthoCam.Get1(0).ViewProjection);
         _renderInfo.DrawCalls = 0;
         GlWrapper.Gl.Clear((uint) ClearBufferMask.ColorBufferBit);
 

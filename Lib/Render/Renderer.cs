@@ -24,9 +24,10 @@ public class Renderer
     }
 
 
-    public void Begin()
+    public void Begin(in Matrix4x4 viewProjection)
     {
         _shader.Use();
+        _shader.SetUniform("uVP", viewProjection);
         _renderInfo.DrawCalls = 0;
         GlWrapper.Clear();
     }

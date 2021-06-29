@@ -24,13 +24,15 @@ internal class Program : Lib.Game
             .Replace(new Name("Player"))
             .Replace(new QuadRenderer());
 
+        World.AddCamera(1, 1);
+
         RenderSystems.Add(new MyImGuiRenderer())
-            .Add(MyImGuiRenderer.MyImGuiData.Instance);
-            ;
+            .Add(MyImGuiRenderer.ImGuiEntityList.Instance);
 
         UpdateSystems
             .Add(new PlayerControllerSystem(), "Player Controller")
             .Add(new GameControllerSystem())
+            .Add(new CameraViewUpdateSystem(), "Camera Update System")
             ;
     }
 

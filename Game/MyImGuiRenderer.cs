@@ -58,10 +58,10 @@ public class MyImGuiRenderer : IEcsRunSystem
 
 
         ImGui.Begin("Entities");
-        using (quadRendererCount.Put(MyImGuiData.EntityCount))
+        using (quadRendererCount.Put(ImGuiEntityList.EntityCount))
             ImGuiExtensions.Text(quadRendererCount);
 
-        ImGui.ListBox("", ref _entitiesCurrentSelectedIndex, MyImGuiData.EntityBuffer, MyImGuiData.EntityCount);
+        ImGui.ListBox("", ref _entitiesCurrentSelectedIndex, ImGuiEntityList.EntityBuffer, ImGuiEntityList.EntityCount);
 
         ImGui.End();
     }
@@ -153,12 +153,12 @@ public class MyImGuiRenderer : IEcsRunSystem
     }
 
 
-    public class MyImGuiData : IEcsRunFixedSystem
+    public class ImGuiEntityList : IEcsRunFixedSystem
 #if DEBUG
         , IEcsWorldDebugListener
 #endif
     {
-        public static int EntityCount => Math.Min(EntityBuffer.Length, Instance._quadRendererEntities.GetEntitiesCount());
+        public static int EntityCount => Math.Min(EntityBuffer.Length, Instance._entities.GetEntitiesCount());
         public static string[] EntityBuffer = new string[0];
 
         public static bool EntityBufferDirty = true;
@@ -169,13 +169,13 @@ public class MyImGuiRenderer : IEcsRunSystem
         private const int UpdateListEveryXWorldUpdates = 10;
     #endif
 
-        private MyImGuiData()
+        private ImGuiEntityList()
         {
         }
 
-        public static MyImGuiData Instance = new();
+        public static ImGuiEntityList Instance = new();
 
-        private readonly EcsFilter<Position, QuadRenderer> _quadRendererEntities = null!;
+        private readonly EcsFilter<Position> _entities = null!;
 
         public void RunFixed(double delta)
         {
@@ -193,12 +193,12 @@ public class MyImGuiRenderer : IEcsRunSystem
 
         private void UpdateEntityBuffer()
         {
-            int entitiesCount = _quadRendererEntities.GetEntitiesCount();
+            int entitiesCount = _entities.GetEntitiesCount();
             if (entitiesCount > EntityBuffer.Length)
                 EntityBuffer = new string[entitiesCount];
             for (int i = 0; i < entitiesCount; ++i)
             {
-                EcsEntity ecsEntity = _quadRendererEntities.GetEntity(i);
+                EcsEntity ecsEntity = _entities.GetEntity(i);
                 string name = ecsEntity.Has<Name>() ? ecsEntity.Get<Name>().Value : "Unnamed entity";
                 EntityBuffer[i] = name;
             }
@@ -228,16 +228,6 @@ public class MyImGuiRenderer : IEcsRunSystem
         }
     #endif
     }
-}
-
-public struct Name
-{
-    public Name(string value)
-    {
-        Value = value;
-    }
-
-    public string Value;
 }
 
 
