@@ -26,8 +26,8 @@ internal class Program : Lib.Game
 
         World.AddCamera(1, 1);
 
-        RenderSystems.Add(new MyImGuiRenderer())
-            .Add(MyImGuiRenderer.ImGuiEntityList.Instance);
+
+        MyImGuiRenderer.Register(RenderSystems);
 
         UpdateSystems
             .Add(new PlayerControllerSystem(), "Player Controller")
